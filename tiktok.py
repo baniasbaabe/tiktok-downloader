@@ -2,6 +2,7 @@ import random
 import string
 import os
 import math
+import glob
 
 from tkinter import filedialog
 from tkinter import *
@@ -16,9 +17,12 @@ def get_video_bytes(api, tiktok_video_id):
     video = api.video(id=tiktok_video_id)
     return video.bytes()
 
+def get_date_today():
+    return datetime.today().strftime("%Y-%m-%d")
+
 def generate_random_file_name(lowercase = True):
     strings_choices = string.ascii_lowercase if lowercase == True else string.ascii_uppercase
-    date_today = datetime.today().strftime("%Y-%m-%d")
+    date_today = get_date_today()
     random_string = ''.join(random.choices(strings_choices + string.digits, k=12))
     return f"{date_today}_{random_string}"
     
@@ -60,23 +64,23 @@ def main():
 
             url_file_name_map[f"{i}.mp4"] = [url]
 
-    L =[]
+    video_list =[]
     for root, dirs, files in os.walk(r".\downloaded_tiktoks"):
         for i, file in enumerate(files):
             if os.path.splitext(file)[1] == '.mp4':
                 filePath = os.path.join(root, file)
                 video = VideoFileClip(filePath)
                 url_file_name_map[file].append(video.duration)
-                L.append(video)
+                video_list.append(video)
 
-    final_clip = concatenate_videoclips(L, method = "compose")
+    final_clip = concatenate_videoclips(video_list, method = "compose")
     random_dir = generate_random_file_name()
     os.makedirs(os.path.join(gui_win.DOWNLOAD_PATH, random_dir))
-    final_clip.to_videofile(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, 'final_output.mp4')}", fps = 128)
+    final_clip.to_videofile(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, f'{get_date_today()}_final_output.mp4')}", fps = 128)
 
     lines = []
     start_time = time(0, 0)
-    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, 'timestamp.txt')}", 'a') as f:
+    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, f'{get_date_today}_timestamps.txt')}", 'a') as f:
         for key, value in url_file_name_map.items():
             duration = math.floor(value[1])
             start_time = datetime.combine(date.today(), start_time) + timedelta(seconds=duration)
@@ -84,9 +88,6 @@ def main():
             lines.append(f"{value[0]} / {start_time}\n")
 
         f.writelines(lines)
-
-DOWNLOAD_PATH = ""
-LINKS = ""
 
 gui_win = Tk()
 gui_win.geometry('400x400')
@@ -113,3 +114,6 @@ download_btn.pack()
 gui_win.mainloop()
 
 # Clean all files in download folder
+files = glob.glob(os.path.join(r".\downloaded_tiktoks", "*"))
+for file in files:
+    os.remove(file)
