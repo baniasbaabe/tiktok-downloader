@@ -2,18 +2,14 @@ import random
 import string
 import os
 import math
-import sys
+
 from tkinter import filedialog
 from tkinter import *
-
-
 from TikTokApi import TikTokApi
 from datetime import date, datetime, time, timedelta
 from pregex.quantifiers import AtMost, AtLeastOnce
 from pregex.classes import AnyDigit
 from collections import OrderedDict
-
-
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 
 def get_video_bytes(api, tiktok_video_id):
@@ -23,7 +19,7 @@ def get_video_bytes(api, tiktok_video_id):
 def generate_random_file_name(lowercase = True):
     strings_choices = string.ascii_lowercase if lowercase == True else string.ascii_uppercase
     date_today = datetime.today().strftime("%Y-%m-%d")
-    # random_string = ''.join(random.choices(strings_choices + string.digits, k=12))
+    random_string = ''.join(random.choices(strings_choices + string.digits, k=12))
     return f"{date_today}_{random_string}"
     
 def download_video(video_data, file_name):
@@ -74,13 +70,13 @@ def main():
                 L.append(video)
 
     final_clip = concatenate_videoclips(L, method = "compose")
-    print(DOWNLOAD_PATH)
-    print(os.path.join(gui_win.DOWNLOAD_PATH, 'final_output.mp4'))
-    final_clip.to_videofile(f"{os.path.join(gui_win.DOWNLOAD_PATH, 'final_output.mp4')}", fps = 128)
+    random_dir = generate_random_file_name()
+    os.makedirs(os.path.join(gui_win.DOWNLOAD_PATH, random_dir))
+    final_clip.to_videofile(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, 'final_output.mp4')}", fps = 128)
 
     lines = []
     start_time = time(0, 0)
-    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, 'timestamp.txt')}", 'a') as f:
+    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, 'timestamp.txt')}", 'a') as f:
         for key, value in url_file_name_map.items():
             duration = math.floor(value[1])
             start_time = datetime.combine(date.today(), start_time) + timedelta(seconds=duration)
@@ -104,14 +100,16 @@ inputtxt = Text(gui_win,
 inputtxt.pack()
 
 def get_download_directory():
-    gui_win.DOWNLOAD_PATH=filedialog.askdirectory(title="Dialog box")
+    gui_win.DOWNLOAD_PATH=filedialog.askdirectory(title="Speicherort")
     print(DOWNLOAD_PATH)
 
 dialog_btn = Button(gui_win, text='Wähle einen Speicherort aus', command = get_download_directory)
 dialog_btn.pack()
 
-download_btn = Button(gui_win, text='dwnld', command = main)
+download_btn = Button(gui_win, text='Herunterladen', command = main)
 
 download_btn.pack()
 
 gui_win.mainloop()
+
+# Clean all files in download folder
