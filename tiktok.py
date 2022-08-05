@@ -3,6 +3,7 @@ import string
 import os
 import math
 import glob
+import logging
 
 from tkinter import filedialog
 from tkinter import *
@@ -12,6 +13,8 @@ from pregex.quantifiers import AtMost, AtLeastOnce
 from pregex.classes import AnyDigit
 from collections import OrderedDict
 from moviepy.editor import VideoFileClip, concatenate_videoclips
+
+logging.basicConfig(level=logging.INFO)
 
 def get_video_bytes(api, tiktok_video_id):
     video = api.video(id=tiktok_video_id)
@@ -51,9 +54,15 @@ def extract_tiktok_video_id(url):
 # ]
 
 def main():
+
+    os.makedirs("downloaded_tiktoks", exist_ok=True)
+    logging.info("Folder 'downloaded_tiktoks created.")
+
     LINKS = inputtxt.get(1.0, "end-1c")
-    LINKS = LINKS.split("\n")
-    print(LINKS)
+    LINKS = LINKS.splitlines()
+
+    LINKS = list(map(str.strip, LINKS)) # Remove whitespaces
+
     url_file_name_map = OrderedDict()
 
     with TikTokApi() as api:
@@ -63,6 +72,7 @@ def main():
             download_video(video_data, i)
 
             url_file_name_map[f"{i}.mp4"] = [url]
+            logging.info(f"TikTok Video {i+1} installed")
 
     video_list =[]
     for root, dirs, files in os.walk(r".\downloaded_tiktoks"):
@@ -74,20 +84,29 @@ def main():
                 video_list.append(video)
 
     final_clip = concatenate_videoclips(video_list, method = "compose")
+    logging.info("Final Video created")
     random_dir = generate_random_file_name()
     os.makedirs(os.path.join(gui_win.DOWNLOAD_PATH, random_dir))
     final_clip.to_videofile(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, f'{get_date_today()}_final_output.mp4')}", fps = 128)
+    logging.info("Final video saved")
 
     lines = []
     start_time = time(0, 0)
-    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, f'{get_date_today}_timestamps.txt')}", 'a') as f:
+    with open(f"{os.path.join(gui_win.DOWNLOAD_PATH, random_dir, f'{get_date_today()}_timestamps.txt')}", 'a') as f:
         for key, value in url_file_name_map.items():
+            lines.append(f"{value[0]} / {start_time}\n")
             duration = math.floor(value[1])
             start_time = datetime.combine(date.today(), start_time) + timedelta(seconds=duration)
             start_time = start_time.time()
-            lines.append(f"{value[0]} / {start_time}\n")
 
         f.writelines(lines)
+    logging.info("Text file with timestamps created and saved")
+
+    # Clean all files in download folder
+    files = glob.glob(os.path.join(r".\downloaded_tiktoks", "*"))
+    for file in files:
+        os.remove(file)
+    logging.info("Cleaned up")
 
 gui_win = Tk()
 gui_win.geometry('400x400')
@@ -102,7 +121,6 @@ inputtxt.pack()
 
 def get_download_directory():
     gui_win.DOWNLOAD_PATH=filedialog.askdirectory(title="Speicherort")
-    print(DOWNLOAD_PATH)
 
 dialog_btn = Button(gui_win, text='Wähle einen Speicherort aus', command = get_download_directory)
 dialog_btn.pack()
@@ -112,8 +130,3 @@ download_btn = Button(gui_win, text='Herunterladen', command = main)
 download_btn.pack()
 
 gui_win.mainloop()
-
-# Clean all files in download folder
-files = glob.glob(os.path.join(r".\downloaded_tiktoks", "*"))
-for file in files:
-    os.remove(file)
